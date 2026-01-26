@@ -1,0 +1,25 @@
+## Build folders (Most important)
+[Bb]in/
+[Oo]bj/
+
+## Visual Studio files
+.vs/
+*.user
+*.userosscache
+*.sln.docstates
+
+## VS Code files
+.vscode/
+
+## Sensitive/Local configuration files
+appsettings.Development.json
+appsettings.Local.json
+
+## JetBrains Rider files
+.idea/
+
+## Operating System files
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+.DS_Store
