@@ -2,6 +2,8 @@ using GameStore.Api.Dtos;
 
 var builder = WebApplication.CreateBuilder(args);
 var app = builder.Build();
+
+const string GetGameEndpointName = "GetGame";
 List<GameDto> games = [
     new (
         1,
@@ -25,6 +27,63 @@ List<GameDto> games = [
         new DateOnly(2022, 9, 27)
     )
 ];
-app.MapGet("/", () => "Hello World!");
+
+// Get /games
+app.MapGet("games", () => games);
+
+//Get /games/1
+app.MapGet("games/{id}", (int id) =>
+{
+    // Nullable game
+    GameDto? game = games.Find(game => game.Id == id);
+
+    return game is null ? Results.NotFound() : Results.Ok(game);
+})
+.WithName(GetGameEndpointName);
+
+//Post /games
+app.MapPost("games", (CreateGameDto newGame) =>
+{
+    GameDto game = new(
+        games.Count + 1,
+        newGame.Name,
+        newGame.Genre,
+        newGame.Price,
+        newGame.ReleaseDate
+    );
+    games.Add(game);
+
+    return Results.CreatedAtRoute(GetGameEndpointName, new { id = game.Id }, game);
+});
+
+//Put /games/1
+app.MapPut("games/{id}", (int id, UpdateGameDto updatedGame) =>
+{
+    // Find index of game base on id
+    var index = games.FindIndex(game => game.Id == id);
+
+    // index not found
+    if (index == -1)
+    {
+        return Results.NotFound();
+    }
+
+    games[index] = new GameDto(
+        id,
+        updatedGame.Name,
+        updatedGame.Genre,
+        updatedGame.Price,
+        updatedGame.ReleaseDate
+    );
+
+    return Results.NoContent();
+});
+
+app.MapDelete("games/{id}", (int id) =>
+{
+    games.RemoveAll(game => game.Id == id);
+
+    return Results.NoContent();
+});
 
 app.Run();
