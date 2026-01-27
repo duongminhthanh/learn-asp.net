@@ -1,5 +1,5 @@
 ﻿using GameStore.Api.Dtos;
-
+using MinimalApis.Extensions;
 namespace GameStore.Api.Endpoints
 {
     public static class GamesEndpoints
@@ -31,7 +31,7 @@ namespace GameStore.Api.Endpoints
         public static RouteGroupBuilder MapGameEndpoints(this WebApplication app)
         {
             // Add group 
-            var group = app.MapGroup("games");
+            var group = app.MapGroup("games").WithParameterValidation();
             // Get /games
             group.MapGet("/", () => games);
 
