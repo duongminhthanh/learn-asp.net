@@ -4,3 +4,5 @@
 
 /GAMESTORE/.vs
 /.vs
+/GAMESTORE/GameStore.Api/GameStore.Api/GameStore.db-shm
+/GAMESTORE/GameStore.Api/GameStore.Api/GameStore.db-wal
