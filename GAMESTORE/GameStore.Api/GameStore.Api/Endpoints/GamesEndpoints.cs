@@ -1,5 +1,4 @@
 ﻿using GameStore.Api.Dtos;
-using MinimalApis.Extensions;
 namespace GameStore.Api.Endpoints
 {
     public static class GamesEndpoints
