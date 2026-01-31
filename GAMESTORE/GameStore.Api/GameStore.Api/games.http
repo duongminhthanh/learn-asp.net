@@ -12,13 +12,13 @@ Content-Type: application/json
   "releaseDate": "2010-09-30"
 }
 ###
-PUT http://localhost:5041/games/1
+PUT http://localhost:5041/games/2
 Content-Type: application/json
 {
-    "name": "Street Fighter II Turbo",
-    "genre": "Fighting",
-    "price": 9.99,
-    "releaseDate": "1992-07-15"
+  "name": "Street Fighter II Turbo",
+  "genreId": 1,
+  "price": 19.99,
+  "releaseDate": "1991-02-01"
 }
 ###
 DELETE http://localhost:5041/games/2

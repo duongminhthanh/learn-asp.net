@@ -18,13 +18,39 @@ namespace GameStore.Api.Mapping
 
         }
 
-        public static GameDto ToDto(this Game game)
+        public static Game ToEntity(this UpdateGameDto game,int id)
+        {
+            return new Game()
+            {
+                Id=id,
+                Name = game.Name,
+                GenreId = game.GerneId,
+                Price = game.Price,
+                ReleaseDate = game.ReleaseDate
+
+            };
+
+        }
+
+        public static GameSummaryDto ToGameSummaryDto(this Game game)
         {
             return new
             (
                  game.Id,
                  game.Name,
                  game.Genre!.Name, // Use '!' because we expect the genre to exist after seeding
+                 game.Price,
+                 game.ReleaseDate
+            );
+        }
+
+        public static GameDetailsDto ToGameDetailsDto(this Game game)
+        {
+            return new
+            (
+                 game.Id,
+                 game.Name,
+                 game.GenreId, 
                  game.Price,
                  game.ReleaseDate
             );

@@ -5,7 +5,7 @@ namespace GameStore.Api.Dtos
     public record UpdateGameDto
     (
         [Required][StringLength(50)] string Name,
-        [Required][StringLength(20)] string Genre,
+        int GerneId,
         [Range(1, 100)] decimal Price,
         DateOnly ReleaseDate
     );
