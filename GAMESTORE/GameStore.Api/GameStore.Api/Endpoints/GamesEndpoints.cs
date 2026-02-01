@@ -3,6 +3,7 @@ using GameStore.Api.Dtos;
 using GameStore.Api.Entities;
 using GameStore.Api.Mapping;
 using Microsoft.EntityFrameworkCore;
+using System.Threading.Tasks;
 namespace GameStore.Api.Endpoints
 {
     public static class GamesEndpoints
@@ -13,84 +14,96 @@ namespace GameStore.Api.Endpoints
         {
             // Add group 
             var group = app.MapGroup("games").WithParameterValidation();
-            // Get /games
-            //Projection transform each game to game dto
-            group.MapGet("/", (GameStoreContext dbContext) =>
-            dbContext.Games
-            // make sure each game has genre
-            .Include(game => game.Genre)
-            .Select(game => game.ToGameSummaryDto())
-            // no tracking entities    
-            .AsNoTracking());
+            // GET /games
+            // Retrieves all games with their associated genres asynchronously
+            group.MapGet("/", async (GameStoreContext dbContext) =>
+                await dbContext.Games
+                    // Eagerly load the related Genre entity to avoid NullReferenceException
+                    .Include(game => game.Genre)
+                    // Project each Game entity into a GameSummaryDto for the response
+                    .Select(game => game.ToGameSummaryDto())
+                    // Improve performance by not tracking these entities in the DbContext
+                    .AsNoTracking()
+                    // Execute the query and return the list asynchronously
+                    .ToListAsync());
 
-            //Get /games/1
-            //Inject db context
-            group.MapGet("/{id}", (int id, GameStoreContext dbContext) =>
+            // GET /games/{id}
+            // Fetches a single game by its unique identifier asynchronously
+            group.MapGet("/{id}", async (int id, GameStoreContext dbContext) =>
             {
-                // Nullable game
-                Game? game = dbContext.Games.Find(id);
+                // Find the game by ID using the asynchronous FindAsync method
+                // Returns null if no record matches the given ID
+                Game? game = await dbContext.Games.FindAsync(id);
 
+                // Return 404 Not Found if the game is null; 
+                // otherwise, map the entity to a DTO and return 200 OK
                 return game is null ?
-                Results.NotFound() : Results.Ok(game.ToGameDetailsDto());
+                    Results.NotFound() : Results.Ok(game.ToGameDetailsDto());
             })
-            .WithName(GetGameEndpointName);
+            .WithName(GetGameEndpointName); // Assigned a name for route referencing (e.g., in CreatedAtRoute)
 
-            // POST /games - Endpoint to create a new game record
-            //Inject db context
-            group.MapPost("/", (CreateGameDto newGame, GameStoreContext dbContext) =>
+            // POST /games
+            // Creates a new game record in the database asynchronously
+            group.MapPost("/", async (CreateGameDto newGame, GameStoreContext dbContext) =>
             {
-                // 1. Map the incoming CreateGameDto (input) to a Game Entity (database model)
+                // 1. Map the input DTO to a Game Entity using an extension method
                 Game game = newGame.ToEntity();
 
-                // 2. Add the game entity to the Games DbSet for tracking
+                // 2. Inform the context to track the new entity for insertion
                 dbContext.Games.Add(game);
 
-                // 3. Persist changes to GameStore.db (generates and executes the SQL INSERT)
-                dbContext.SaveChanges();
+                // 3. Commit the transaction to the database and generate the new ID
+                await dbContext.SaveChangesAsync();
 
-                // 4. Return 201 Created with the location of the new resource and the DTO body
+                // 4. Map the persisted entity to a Details DTO and return 201 Created
+                // Providing the route name and ID allows clients to locate the new resource
                 return Results.CreatedAtRoute(
                     GetGameEndpointName,
                     new { id = game.Id },
                     game.ToGameDetailsDto());
             });
 
-            //Put /games/1
-            //Inject db context
-            group.MapPut("/{id}", (int id, UpdateGameDto updatedGame, GameStoreContext dbContext) =>
+            // PUT /games/{id}
+            // Updates an existing game record asynchronously
+            group.MapPut("/{id}", async (int id, UpdateGameDto updatedGame, GameStoreContext dbContext) =>
             {
-                var existingGame = dbContext.Games.Find(id);
+                // Fetch the existing game from the database
+                var existingGame = await dbContext.Games.FindAsync(id);
 
+                // Return 404 if the game doesn't exist
                 if (existingGame is null)
                 {
                     return Results.NotFound();
                 }
 
-                // 1. Cập nhật các giá trị cơ bản (Name, Price, ReleaseDate, GenreId)
+                // 1. Update primitive properties (Name, Price, etc.) using SetValues
                 dbContext.Entry(existingGame)
                          .CurrentValues
                          .SetValues(updatedGame.ToEntity(id));
 
-                // 2. QUAN TRỌNG: Ngắt kết nối với đối tượng Genre cũ trong bộ nhớ
-                // Điều này buộc EF Core chỉ nhìn vào GenreId (con số 1) để lưu vào SQLite
+                // 2. CRITICAL: Detach the Genre navigation property to prevent SQLite FK conflicts
+                // This forces EF Core to only update the GenreId column in the database
                 dbContext.Entry(existingGame)
                          .Reference(g => g.Genre)
                          .IsModified = false;
+
                 existingGame.Genre = null;
 
-                dbContext.SaveChanges();
+                // 3. Persist changes to the database asynchronously
+                await dbContext.SaveChangesAsync();
 
+                // 204 NoContent is the standard response for a successful update
                 return Results.NoContent();
             });
 
-            group.MapDelete("/{id}", (int id, GameStoreContext dbContext) =>
+            group.MapDelete("/{id}", async (int id, GameStoreContext dbContext) =>
             {
-                dbContext.Games.Where(game => game.Id == id)
-                               .ExecuteDelete();
+                await dbContext.Games.Where(game => game.Id == id)
+                               .ExecuteDeleteAsync();
 
                 return Results.NoContent();
             });
-            
+
             return group;
         }
     }
